@@ -245,6 +245,34 @@
     text-underline-offset: 4px;
   }
 
+  /* رابط شرح التشغيل: الزاوية السفلية اليسرى (left فيزيائي وليس منطقياً) */
+  .help-link {
+    position: absolute;
+    left: calc(.9rem + env(safe-area-inset-left, 0px));
+    bottom: calc(.8rem + env(safe-area-inset-bottom, 0px));
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .3rem .85rem .3rem .4rem;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: .9rem;
+    text-decoration: none;
+    transition: border-color .15s, translate .1s;
+  }
+  .help-link:hover { border-color: #1877f2; }
+  .help-link:active { translate: 0 2px; }
+  .help-link .fb {
+    display: grid; place-items: center;
+    width: 1.9rem; height: 1.9rem;
+    border-radius: 50%;
+    background: #1877f2;
+  }
+  @media (max-width: 560px) {
+    .help-link { padding: .25rem; }
+    .help-link .help-text { display: none; }
+  }
+
   /* ---------- الاحتفال ---------- */
   .overlay {
     position: fixed; inset: 0; z-index: 20;
@@ -335,6 +363,12 @@
     </button>
   </div>
   <button class="btn-reset" type="button" id="reset">عرض الجملة كاملة</button>
+  <a class="help-link" href="https://www.facebook.com/share/v/1E571MHoog/" target="_blank" rel="noopener noreferrer" aria-label="فيديو شرح طريقة تشغيل الصفحة على فيسبوك" title="فيديو شرح طريقة التشغيل (فيسبوك)">
+    <span class="fb" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M13.6 22v-8.2h2.8l.5-3.3h-3.3V8.4c0-1 .4-1.7 1.8-1.7H17V3.800c-.3 0-1.300-.2-2.400-.2-2.500 0-4.100 1.500-4.100 4.200v2.700H7.700v3.300h2.800V22z"/></svg>
+    </span>
+    <span class="help-text">طريقة التشغيل</span>
+  </a>
 </footer>
 
 <div class="overlay" id="celebrate" hidden role="dialog" aria-modal="true" aria-labelledby="celebrateTitle">
