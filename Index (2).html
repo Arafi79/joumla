@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>تدريب الجملة</title>
+<style>
+  :root {
+    --bg: #e9f0f6;
+    --ink: #14232e;
+    --muted: #5d6f7c;
+    --panel: #ffffff;
+    --line: #c5d3de;
+    --accent: #3a3fb4;
+    --accent-ink: #ffffff;
+    --accent-soft: #dfe1fb;
+
+    --ok-bg: #d4f4df;  --ok-line: #25a561;  --ok-ink: #0b4727;
+    --bad-bg: #fddddc; --bad-line: #dc4442; --bad-ink: #6a1211;
+
+    /* ألوان بطاقات الكلمات: الدرجة (hue) تأتي من كل بطاقة */
+    --c-bg-s: 85%;  --c-bg-l: 92%;
+    --c-bd-s: 62%;  --c-bd-l: 56%;
+    --c-tx-s: 60%;  --c-tx-l: 18%;
+
+    --fs: clamp(1.4rem, 1rem + 2.3vw, 2.5rem);
+    --font: "Noto Naskh Arabic", "Amiri", "Segoe UI", Tahoma, "Geeza Pro", "Arabic Typesetting", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1a23;
+      --ink: #e8f0f6;
+      --muted: #8fa3b2;
+      --panel: #17252f;
+      --line: #2c4152;
+      --accent: #8a8ff5;
+      --accent-ink: #0d1020;
+      --accent-soft: #232a52;
+
+      --ok-bg: #123a27;  --ok-line: #3bc47c; --ok-ink: #c9f5dc;
+      --bad-bg: #4a1a1a; --bad-line: #f06a67; --bad-ink: #ffd8d7;
+
+      --c-bg-s: 38%;  --c-bg-l: 21%;
+      --c-bd-s: 55%;  --c-bd-l: 52%;
+      --c-tx-s: 80%;  --c-tx-l: 92%;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  button, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  /* ---------- الأعلى: حقل الجملة القابل للطي ---------- */
+  .top {
+    padding: env(safe-area-inset-top, 0px) 0 0;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem;
+    padding: .6rem 1.1rem;
+  }
+  .top-bar h1 { margin: 0; font-size: 1.15rem; font-weight: 700; }
+  .btn-fold {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .35rem .9rem;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    font-size: .95rem;
+  }
+  .btn-fold:hover { border-color: var(--accent); }
+  .btn-fold svg { transition: transform .3s; }
+  .btn-fold[aria-expanded="false"] svg { transform: rotate(180deg); }
+
+  .fold-body {
+    display: grid; grid-template-rows: 1fr;
+    transition: grid-template-rows .3s ease;
+  }
+  .fold-body.closed { grid-template-rows: 0fr; }
+  .fold-inner { overflow: hidden; min-height: 0; }
+  .fold-form {
+    display: flex; gap: .8rem; align-items: stretch;
+    padding: .2rem 1.1rem 1.1rem;
+    max-width: 980px; margin: 0 auto;
+  }
+  .fold-form textarea {
+    flex: 1;
+    min-height: 3.6rem;
+    resize: vertical;
+    padding: .7rem .9rem;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+    font-size: 1.25rem;
+  }
+  .btn-primary {
+    padding: 0 1.4rem;
+    border: 0; border-radius: 12px;
+    background: var(--accent); color: var(--accent-ink);
+    font-weight: 700; cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  /* ---------- الوسط ---------- */
+  main {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2.2rem;
+    padding: 2rem 1rem;
+  }
+  .words {
+    display: flex; flex-wrap: wrap;
+    gap: .9rem .7rem;
+    justify-content: center;
+    max-width: 1040px;
+  }
+  .word {
+    --h: 190;
+    --w-bg: hsl(var(--h) var(--c-bg-s) var(--c-bg-l));
+    --w-bd: hsl(var(--h) var(--c-bd-s) var(--c-bd-l));
+    --w-tx: hsl(var(--h) var(--c-tx-s) var(--c-tx-l));
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: .4em .95em .5em;
+    border: 2px solid var(--w-bd);
+    border-bottom-width: 6px;
+    border-radius: 16px;
+    background: var(--w-bg);
+    color: var(--w-tx);
+    font-size: var(--fs);
+    font-weight: 700;
+    line-height: 1.5;
+    user-select: none;
+    box-shadow: 0 10px 18px -12px rgba(10, 20, 40, .55);
+  }
+  button.word { cursor: pointer; transition: translate .12s; }
+  button.word:hover { translate: 0 -3px; }
+  button.word:active { translate: 0 2px; }
+  .word.neutral { --h: 232; }
+
+  .word.ghost {
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--line);
+    border-bottom-width: 6px;
+    color: transparent;
+    box-shadow: none;
+  }
+  .word.slot {
+    min-width: 3.4em;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: var(--fs);
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--line);
+    box-shadow: none;
+  }
+  .word.slot span { font-size: .55em; opacity: .8; }
+
+  .word.ok  { --w-bg: var(--ok-bg);  --w-bd: var(--ok-line);  --w-tx: var(--ok-ink); }
+  .word.bad { --w-bg: var(--bad-bg); --w-bd: var(--bad-line); --w-tx: var(--bad-ink); animation: shake .4s; }
+  .word.bad::after {
+    content: ""; position: absolute;
+    inset-inline: 12px; bottom: -4px; height: 4px; border-radius: 4px;
+    background: var(--bad-line);
+    transform-origin: right center;
+    animation: drain 3s linear forwards;
+  }
+  .word.pop { animation: pop .42s cubic-bezier(.2, 1.5, .4, 1); }
+  .word.enter { animation: enter .45s both cubic-bezier(.2, 1.2, .4, 1); animation-delay: var(--d, 0ms); }
+
+  @keyframes pop   { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes enter { from { transform: translateY(18px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+  @keyframes drain { to { transform: scaleX(0); } }
+
+  .answer-wrap {
+    width: min(1040px, 100%);
+    padding: 1.1rem 1rem 1.3rem;
+    border: 2px dashed var(--line);
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--panel) 60%, transparent);
+  }
+  .answer-wrap h2 {
+    margin: 0 0 .8rem; text-align: center;
+    font-size: 1rem; font-weight: 600; color: var(--muted);
+  }
+  .answer-wrap .words { gap: .7rem .6rem; }
+
+  .empty {
+    max-width: 30rem; text-align: center;
+    color: var(--muted); font-size: 1.3rem;
+  }
+  .empty b { color: var(--ink); }
+
+  /* ---------- الأسفل: الخيارات ---------- */
+  .bottom {
+    position: sticky; bottom: 0;
+    padding: .8rem 1rem calc(.8rem + env(safe-area-inset-bottom, 0px));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; gap: .6rem;
+  }
+  .status { margin: 0; min-height: 1.6em; color: var(--muted); font-size: 1rem; text-align: center; }
+  .opts { margin: 0; font-size: .95rem; color: var(--muted); }
+  .opts label { cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; }
+  .modes { display: flex; gap: .7rem; flex-wrap: wrap; justify-content: center; width: 100%; }
+  .mode {
+    flex: 1 1 9rem; max-width: 15rem;
+    display: flex; flex-direction: column; align-items: center; gap: .1rem;
+    padding: .65rem .8rem;
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    background: var(--bg);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, translate .1s;
+  }
+  .mode b { font-size: 1.15rem; }
+  .mode small { color: var(--muted); font-size: .85rem; }
+  .mode:hover:not(:disabled) { border-color: var(--accent); }
+  .mode:active:not(:disabled) { translate: 0 2px; }
+  .mode.active { background: var(--accent-soft); border-color: var(--accent); }
+  .mode:disabled, .btn-reset:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-reset {
+    align-self: center;
+    padding: .5rem 1rem; border: 0; background: transparent;
+    color: var(--muted); cursor: pointer; text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* ---------- الاحتفال ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 20;
+    display: grid; place-items: center;
+    padding: 1.2rem;
+    background: rgba(8, 14, 24, .55);
+    backdrop-filter: blur(3px);
+  }
+  .overlay[hidden] { display: none; }
+  .celebrate-card {
+    width: min(34rem, 100%);
+    padding: 2rem 1.6rem 1.6rem;
+    border-radius: 28px;
+    background: var(--panel);
+    text-align: center;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .6);
+    animation: pop .5s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .celebrate-card .big { font-size: 4rem; line-height: 1; }
+  .celebrate-card h2 { margin: .6rem 0 .4rem; font-size: 2rem; }
+  .celebrate-card .sentence {
+    margin: .8rem 0; padding: .8rem 1rem;
+    border-radius: 14px; background: var(--ok-bg); color: var(--ok-ink);
+    font-size: 1.35rem; font-weight: 700;
+  }
+  .celebrate-card p { margin: .3rem 0; color: var(--muted); }
+  .celebrate-actions { display: flex; gap: .7rem; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
+  .celebrate-actions button { padding: .7rem 1.4rem; min-height: 3rem; }
+  .btn-ghost {
+    border: 1.5px solid var(--line); border-radius: 12px;
+    background: transparent; cursor: pointer;
+  }
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
+
+  @media (max-width: 560px) {
+    .fold-form { flex-direction: column; }
+    .btn-primary { padding: .7rem 1rem; }
+    .mode small { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-bar">
+    <h1>تدريب الجملة</h1>
+    <button class="btn-fold" id="foldBtn" type="button" aria-expanded="true" aria-controls="foldBody">
+      <span id="foldLabel">طيّ الحقل</span>
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="fold-body" id="foldBody">
+    <div class="fold-inner">
+      <form class="fold-form" id="sentenceForm">
+        <textarea id="sentenceInput" rows="2" placeholder="اكتب الجملة هنا ثم اضغط Enter" aria-label="الجملة"></textarea>
+        <button class="btn-primary" type="submit">اعتماد الجملة</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<main>
+  <p class="empty" id="empty"><b>أدخل جملة في الحقل أعلى الصفحة</b> ثم اضغط «اعتماد الجملة» لتظهر كلماتها هنا.</p>
+  <section class="words" id="pool" aria-label="كلمات الجملة"></section>
+  <section class="answer-wrap" id="answerWrap" hidden>
+    <h2>الإجابة: رتّب الكلمات بالضغط عليها بالترتيب الصحيح</h2>
+    <div class="words" id="answer"></div>
+  </section>
+</main>
+
+<footer class="bottom">
+  <p class="status" id="status" aria-live="polite"></p>
+  <p class="opts" id="hideOpts" hidden>
+    <label><input type="checkbox" id="randomHide"> اختيار الكلمة المخفية عشوائياً</label>
+  </p>
+  <div class="modes">
+    <button class="mode" type="button" data-mode="spell" aria-pressed="false">
+      <b>تهجئة</b><small>كلمة بعد كلمة</small>
+    </button>
+    <button class="mode" type="button" data-mode="hide" aria-pressed="false">
+      <b>إخفاء</b><small>إخفاء كلمة في كل ضغطة</small>
+    </button>
+    <button class="mode" type="button" data-mode="scramble" aria-pressed="false">
+      <b>تشويش</b><small>أعد ترتيب الجملة</small>
+    </button>
+  </div>
+  <button class="btn-reset" type="button" id="reset">عرض الجملة كاملة</button>
+</footer>
+
+<div class="overlay" id="celebrate" hidden role="dialog" aria-modal="true" aria-labelledby="celebrateTitle">
+  <div class="celebrate-card">
+    <div class="big" aria-hidden="true">🎉</div>
+    <h2 id="celebrateTitle">أحسنت! نجحت</h2>
+    <div class="sentence" id="celebrateSentence"></div>
+    <p id="celebrateStats"></p>
+    <div class="celebrate-actions">
+      <button class="btn-primary" type="button" id="again">تشويش جديد</button>
+      <button class="btn-ghost" type="button" id="closeCelebrate">إغلاق</button>
+    </div>
+  </div>
+</div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const fa = n => Number(n).toLocaleString('ar-EG');
+  const STORE_KEY = 'sentence-trainer:last';
+  const WRONG_MS = 3000;
+
+  const state = {
+    words: [],
+    mode: 'view',          // view | spell | hide | scramble
+    spell: 0,              // عدد الكلمات الظاهرة في التهجئة
+    hideIdx: -1,           // فهرس الكلمة المخفية
+    pop: -1,               // بطاقة تُحرَّك عند الظهور
+    pool: [],              // [{id, t}] بعد التشويش
+    placed: [],            // معرّفات الكلمات الموضوعة صحيحاً بالترتيب
+    wrong: null,           // معرّف الكلمة الخاطئة المؤقتة
+    locked: false,
+    mistakes: 0,
+    enter: false,
+    timer: null
+  };
+
+  const hue = i => (i * 47 + 160) % 360;
+  function mk(tag, cls, text) {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text != null) el.textContent = text;
+    return el;
+  }
+
+  /* ---------- حقل الجملة والطيّ ---------- */
+  const foldBody = $('#foldBody'), foldBtn = $('#foldBtn'), input = $('#sentenceInput');
+  function setFold(closed) {
+    foldBody.classList.toggle('closed', closed);
+    foldBody.inert = closed;
+    foldBtn.setAttribute('aria-expanded', String(!closed));
+    $('#foldLabel').textContent = closed ? 'إظهار الحقل' : 'طيّ الحقل';
+    if (!closed) input.focus();
+  }
+  foldBtn.addEventListener('click', () => setFold(!foldBody.classList.contains('closed')));
+
+  $('#sentenceForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (setSentence(input.value)) setFold(true);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      $('#sentenceForm').requestSubmit();
+    }
+  });
+
+  function setSentence(text) {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) { input.focus(); return false; }
+    clearTimeout(state.timer);
+    Object.assign(state, {
+      words, mode: 'view', spell: 0, hideIdx: -1, pop: -1,
+      pool: [], placed: [], wrong: null, locked: false, mistakes: 0, enter: false
+    });
+    try { localStorage.setItem(STORE_KEY, text.trim()); } catch (_) {}
+    closeCelebrate();
+    render();
+    return true;
+  }
+
+  /* ---------- الأنشطة ---------- */
+  function spellPress() {
+    if (state.mode !== 'spell') { state.mode = 'spell'; state.spell = 0; resetScramble(); }
+    state.spell = state.spell >= state.words.length ? 0 : state.spell + 1;
+    state.pop = state.spell > 0 ? state.spell - 1 : -1;
+    render();
+  }
+
+  function hidePress() {
+    const n = state.words.length;
+    if (state.mode !== 'hide') { state.mode = 'hide'; state.hideIdx = -1; resetScramble(); }
+    const prev = state.hideIdx;
+    let next;
+    if (n === 1) {
+      next = prev === -1 ? 0 : -1;
+    } else if ($('#randomHide').checked) {
+      do { next = Math.floor(Math.random() * n); } while (next === prev);
+    } else {
+      next = (prev + 1) % n;
+    }
+    state.hideIdx = next;
+    state.pop = prev;       // الكلمة التي أُعيد إظهارها
+    render();
+  }
+
+  function resetScramble() {
+    clearTimeout(state.timer);
+    Object.assign(state, { pool: [], placed: [], wrong: null, locked: false, mistakes: 0 });
+  }
+
+  function shuffleNow() {
+    const orig = state.words;
+    const prevTexts = state.pool.map(p => p.t);
+    let best = null;
+    for (let tries = 0; tries < 40; tries++) {
+      const arr = orig.map((t, id) => ({ id, t }));
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      best = arr;
+      const differsOrig = arr.some((p, i) => p.t !== orig[i]);
+      const differsPrev = !prevTexts.length || arr.some((p, i) => p.t !== prevTexts[i]);
+      if (differsOrig && differsPrev) break;
+    }
+    return best;
+  }
+
+  function scramblePress() {
+    clearTimeout(state.timer);
+    closeCelebrate();
+    state.mode = 'scramble';
+    state.pool = shuffleNow();
+    state.placed = [];
+    state.wrong = null;
+    state.locked = false;
+    state.mistakes = 0;
+    state.enter = true;
+    render();
+    state.enter = false;
+  }
+
+  function showAll() {
+    clearTimeout(state.timer);
+    closeCelebrate();
+    resetScramble();
+    state.mode = 'view';
+    state.hideIdx = -1; state.spell = 0; state.pop = -1;
+    render();
+  }
+
+  /* ---------- حركة انتقال البطاقة (FLIP) ---------- */
+  function rectOf(id, area) {
+    const el = document.querySelector(`#${area} [data-id="${id}"]`);
+    return el ? el.getBoundingClientRect() : null;
+  }
+  function flip(id, from) {
+    if (!from) return;
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (!el) return;
+    const to = el.getBoundingClientRect();
+    const dx = from.left - to.left, dy = from.top - to.top;
+    if (!dx && !dy) return;
+    el.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)`, zIndex: 5 }, { transform: 'none', zIndex: 5 }],
+      { duration: 480, easing: 'cubic-bezier(.2,.8,.2,1)' }
+    );
+  }
+
+  function pick(id) {
+    if (state.locked || state.mode !== 'scramble') return;
+    if (state.placed.includes(id)) return;
+    const item = state.pool.find(p => p.id === id);
+    if (!item) return;
+    const from = rectOf(id, 'pool');
+    const expected = state.words[state.placed.length];
+
+    if (item.t === expected) {
+      state.placed.push(id);
+      render();
+      flip(id, from);
+      if (state.placed.length === state.words.length) setTimeout(celebrate, 650);
+    } else {
+      state.mistakes++;
+      state.wrong = id;
+      state.locked = true;
+      render();
+      flip(id, from);
+      state.timer = setTimeout(() => {
+        const back = rectOf(id, 'answer');
+        state.wrong = null;
+        state.locked = false;
+        render();
+        flip(id, back);
+      }, WRONG_MS);
+    }
+  }
+
+  /* ---------- العرض ---------- */
+  function setStatus(t) { $('#status').textContent = t; }
+
+  function render() {
+    const { words, mode } = state, n = words.length;
+    $('#pool').textContent = '';
+    $('#answer').textContent = '';
+    $('#empty').hidden = n > 0;
+    $('#answerWrap').hidden = !(n && mode === 'scramble');
+    $('#hideOpts').hidden = mode !== 'hide';
+    document.querySelectorAll('.mode').forEach(b => {
+      const on = b.dataset.mode === mode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+      b.disabled = !n;
+    });
+    $('#reset').disabled = !n || mode === 'view';
+    if (!n) { setStatus(''); return; }
+    if (mode === 'scramble') renderScramble(n); else renderLinear(n);
+  }
+
+  function renderLinear(n) {
+    const { mode } = state, pool = $('#pool');
+    state.words.forEach((w, i) => {
+      const c = mk('div', 'word', w);
+      c.style.setProperty('--h', hue(i));
+      let hidden = false;
+      if (mode === 'spell') hidden = i >= state.spell;
+      if (mode === 'hide') hidden = i === state.hideIdx;
+      if (hidden) { c.classList.add('ghost'); c.setAttribute('aria-hidden', 'true'); }
+      else if (state.pop === i) c.classList.add('pop');
+      pool.appendChild(c);
+    });
+    state.pop = -1;
+
+    if (mode === 'view') setStatus('اختر نشاطاً من الأسفل: تهجئة أو إخفاء أو تشويش.');
+    if (mode === 'spell') {
+      if (state.spell === 0) setStatus('اضغط «تهجئة» لإظهار الكلمة الأولى.');
+      else if (state.spell < n) setStatus(`الكلمة ${fa(state.spell)} من ${fa(n)}`);
+      else setStatus('اكتملت الجملة. الضغطة التالية تعيد من البداية.');
+    }
+    if (mode === 'hide') {
+      setStatus(state.hideIdx === -1
+        ? 'اضغط «إخفاء» لإخفاء كلمة.'
+        : `الكلمة المخفية: ${fa(state.hideIdx + 1)} من ${fa(n)}. اضغط لإخفاء كلمة أخرى.`);
+    }
+  }
+
+  function renderScramble(n) {
+    const pool = $('#pool'), ans = $('#answer');
+    state.pool.forEach((p, i) => {
+      if (state.placed.includes(p.id) || state.wrong === p.id) {
+        const g = mk('div', 'word ghost', p.t);
+        g.setAttribute('aria-hidden', 'true');
+        pool.appendChild(g);
+        return;
+      }
+      const b = mk('button', 'word neutral' + (state.enter ? ' enter' : ''), p.t);
+      b.type = 'button';
+      b.dataset.id = p.id;
+      if (state.enter) b.style.setProperty('--d', `${i * 45}ms`);
+      b.addEventListener('click', () => pick(p.id));
+      pool.appendChild(b);
+    });
+
+    const textOf = id => state.pool.find(p => p.id === id).t;
+    for (let k = 0; k < n; k++) {
+      if (k < state.placed.length) {
+        const id = state.placed[k];
+        const c = mk('div', 'word ok', textOf(id));
+        c.dataset.id = id;
+        ans.appendChild(c);
+      } else if (k === state.placed.length && state.wrong !== null) {
+        const c = mk('div', 'word bad', textOf(state.wrong));
+        c.dataset.id = state.wrong;
+        ans.appendChild(c);
+      } else {
+        const s = mk('div', 'word slot');
+        s.appendChild(mk('span', null, fa(k + 1)));
+        ans.appendChild(s);
+      }
+    }
+
+    if (state.wrong !== null) setStatus('كلمة غير صحيحة في هذا الموضع. ستعود إلى مكانها بعد ثلاث ثوانٍ.');
+    else if (state.placed.length === n) setStatus('أحسنت! اكتملت الجملة.');
+    else setStatus(`المتبقي ${fa(n - state.placed.length)} من ${fa(n)} كلمة · الأخطاء: ${fa(state.mistakes)}`);
+  }
+
+  /* ---------- الاحتفال ---------- */
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function celebrate() {
+    $('#celebrateSentence').textContent = state.words.join(' ');
+    $('#celebrateStats').textContent = state.mistakes === 0
+      ? 'أنهيتها دون أي خطأ.'
+      : `عدد المحاولات الخاطئة: ${fa(state.mistakes)}`;
+    $('#celebrate').hidden = false;
+    $('#again').focus();
+    chime();
+    if (!reduceMotion) confetti();
+  }
+  function closeCelebrate() { $('#celebrate').hidden = true; }
+
+  $('#again').addEventListener('click', scramblePress);
+  $('#closeCelebrate').addEventListener('click', closeCelebrate);
+  $('#celebrate').addEventListener('click', e => { if (e.target.id === 'celebrate') closeCelebrate(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') closeCelebrate(); });
+
+  function chime() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        const t = ctx.currentTime + i * 0.13;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.22, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+        o.connect(g).connect(ctx.destination);
+        o.start(t); o.stop(t + 0.55);
+      });
+    } catch (_) {}
+  }
+
+  const cv = $('#confetti'), cx = cv.getContext('2d');
+  let raf = 0;
+  function confetti() {
+    cancelAnimationFrame(raf);
+    const dpr = devicePixelRatio || 1;
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const colors = ['#3a3fb4', '#25a561', '#f2b705', '#e8505b', '#14b8c4', '#ff8a3d', '#b05ce6'];
+    const parts = Array.from({ length: 170 }, () => ({
+      x: innerWidth * (0.5 + (Math.random() - 0.5) * 0.3),
+      y: innerHeight * 0.55,
+      vx: (Math.random() - 0.5) * 16,
+      vy: -Math.random() * 17 - 5,
+      w: 6 + Math.random() * 7, h: 9 + Math.random() * 8,
+      r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+      c: colors[Math.floor(Math.random() * colors.length)]
+    }));
+    const start = performance.now();
+    (function frame(now) {
+      const t = now - start;
+      cx.clearRect(0, 0, innerWidth, innerHeight);
+      parts.forEach(p => {
+        p.vy += 0.35; p.vx *= 0.99;
+        p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        cx.save();
+        cx.globalAlpha = Math.max(0, Math.min(1, (5200 - t) / 1200));
+        cx.translate(p.x, p.y); cx.rotate(p.r);
+        cx.fillStyle = p.c;
+        cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        cx.restore();
+      });
+      if (t < 5200) raf = requestAnimationFrame(frame);
+      else cx.clearRect(0, 0, innerWidth, innerHeight);
+    })(start);
+  }
+
+  /* ---------- ربط الأزرار ---------- */
+  document.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => {
+    const m = b.dataset.mode;
+    if (m === 'spell') spellPress();
+    else if (m === 'hide') hidePress();
+    else scramblePress();
+  }));
+  $('#reset').addEventListener('click', showAll);
+
+  // اختصار لوحة المفاتيح (مسافة / Enter) في التهجئة والإخفاء فقط
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|BUTTON|SELECT/.test(e.target.tagName)) return;
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    if (state.mode === 'spell') { e.preventDefault(); spellPress(); }
+    else if (state.mode === 'hide') { e.preventDefault(); hidePress(); }
+  });
+
+  /* ---------- بداية التشغيل ---------- */
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    if (saved) { input.value = saved; setSentence(saved); setFold(true); }
+  } catch (_) {}
+  render();
+  if (!state.words.length) input.focus();
+})();
+</script>
+</body>
+</html>
