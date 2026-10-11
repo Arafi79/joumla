@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>تدريب الجملة</title>
+<title>تدريب على قراءة جملة</title>
 <style>
   :root {
     --bg: #e9f0f6;
@@ -107,6 +107,8 @@
     background: var(--bg);
     font-size: 1.25rem;
   }
+  .form-actions { display: flex; flex-direction: column; gap: .5rem; }
+  .form-actions .btn-ghost { padding: .45rem 1rem; }
   .btn-primary {
     padding: 0 1.4rem;
     border: 0; border-radius: 12px;
@@ -145,7 +147,7 @@
     color: var(--w-tx);
     font-size: var(--fs);
     font-weight: 700;
-    line-height: 1.5;
+    line-height: 1.85;
     user-select: none;
     box-shadow: 0 10px 18px -12px rgba(10, 20, 40, .55);
   }
@@ -305,11 +307,14 @@
     border: 1.5px solid var(--line); border-radius: 12px;
     background: transparent; cursor: pointer;
   }
+  .btn-ghost:hover { border-color: var(--accent); }
   #confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
 
   @media (max-width: 560px) {
     .fold-form { flex-direction: column; }
     .btn-primary { padding: .7rem 1rem; }
+    .form-actions { flex-direction: row; }
+    .form-actions > * { flex: 1; }
     .mode small { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -331,7 +336,10 @@
     <div class="fold-inner">
       <form class="fold-form" id="sentenceForm">
         <textarea id="sentenceInput" rows="2" placeholder="اكتب الجملة هنا ثم اضغط Enter" aria-label="الجملة"></textarea>
-        <button class="btn-primary" type="submit">اعتماد الجملة</button>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit">اعتماد الجملة</button>
+          <button class="btn-ghost" type="button" id="sampleBtn" title="قُمْ لِلْمُعَلِّمِ وَفِّهِ التَّبْجِيلَا">جملة نموذجية</button>
+        </div>
       </form>
     </div>
   </div>
@@ -348,15 +356,15 @@
 
 <footer class="bottom">
   <p class="status" id="status" aria-live="polite"></p>
-  <p class="opts" id="hideOpts" hidden>
-    <label><input type="checkbox" id="randomHide"> اختيار الكلمة المخفية عشوائياً</label>
-  </p>
   <div class="modes">
     <button class="mode" type="button" data-mode="spell" aria-pressed="false">
       <b>تهجئة</b><small>كلمة بعد كلمة</small>
     </button>
     <button class="mode" type="button" data-mode="hide" aria-pressed="false">
-      <b>إخفاء</b><small>إخفاء كلمة في كل ضغطة</small>
+      <b>إخفاء بالترتيب</b><small>من أول الجملة إلى آخرها</small>
+    </button>
+    <button class="mode" type="button" data-mode="rand" aria-pressed="false">
+      <b>إخفاء عشوائي</b><small>كلمة مختلفة في كل ضغطة</small>
     </button>
     <button class="mode" type="button" data-mode="scramble" aria-pressed="false">
       <b>تشويش</b><small>أعد ترتيب الجملة</small>
@@ -392,6 +400,7 @@
   const fa = n => Number(n).toLocaleString('ar-EG');
   const STORE_KEY = 'sentence-trainer:last';
   const WRONG_MS = 3000;
+  const SAMPLE = 'قُمْ لِلْمُعَلِّمِ وَفِّهِ التَّبْجِيلَا';
 
   const state = {
     words: [],
@@ -431,6 +440,7 @@
     e.preventDefault();
     if (setSentence(input.value)) setFold(true);
   });
+  $('#sampleBtn').addEventListener('click', () => { input.value = SAMPLE; input.focus(); });
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
@@ -460,14 +470,15 @@
     render();
   }
 
-  function hidePress() {
+  function hidePress(random) {
     const n = state.words.length;
-    if (state.mode !== 'hide') { state.mode = 'hide'; state.hideIdx = -1; resetScramble(); }
+    const target = random ? 'rand' : 'hide';
+    if (state.mode !== target) { state.mode = target; state.hideIdx = -1; resetScramble(); }
     const prev = state.hideIdx;
     let next;
     if (n === 1) {
       next = prev === -1 ? 0 : -1;
-    } else if ($('#randomHide').checked) {
+    } else if (random) {
       do { next = Math.floor(Math.random() * n); } while (next === prev);
     } else {
       next = (prev + 1) % n;
@@ -579,7 +590,6 @@
     $('#answer').textContent = '';
     $('#empty').hidden = n > 0;
     $('#answerWrap').hidden = !(n && mode === 'scramble');
-    $('#hideOpts').hidden = mode !== 'hide';
     document.querySelectorAll('.mode').forEach(b => {
       const on = b.dataset.mode === mode;
       b.classList.toggle('active', on);
@@ -598,7 +608,7 @@
       c.style.setProperty('--h', hue(i));
       let hidden = false;
       if (mode === 'spell') hidden = i >= state.spell;
-      if (mode === 'hide') hidden = i === state.hideIdx;
+      if (mode === 'hide' || mode === 'rand') hidden = i === state.hideIdx;
       if (hidden) { c.classList.add('ghost'); c.setAttribute('aria-hidden', 'true'); }
       else if (state.pop === i) c.classList.add('pop');
       pool.appendChild(c);
@@ -611,9 +621,9 @@
       else if (state.spell < n) setStatus(`الكلمة ${fa(state.spell)} من ${fa(n)}`);
       else setStatus('اكتملت الجملة. الضغطة التالية تعيد من البداية.');
     }
-    if (mode === 'hide') {
+    if (mode === 'hide' || mode === 'rand') {
       setStatus(state.hideIdx === -1
-        ? 'اضغط «إخفاء» لإخفاء كلمة.'
+        ? 'اضغط الزر لإخفاء كلمة.'
         : `الكلمة المخفية: ${fa(state.hideIdx + 1)} من ${fa(n)}. اضغط لإخفاء كلمة أخرى.`);
     }
   }
@@ -736,24 +746,27 @@
   document.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => {
     const m = b.dataset.mode;
     if (m === 'spell') spellPress();
-    else if (m === 'hide') hidePress();
+    else if (m === 'hide') hidePress(false);
+    else if (m === 'rand') hidePress(true);
     else scramblePress();
   }));
   $('#reset').addEventListener('click', showAll);
 
-  // اختصار لوحة المفاتيح (مسافة / Enter) في التهجئة والإخفاء فقط
+  // اختصار لوحة المفاتيح (مسافة / Enter) في التهجئة والإخفاء بنوعيه فقط
   addEventListener('keydown', e => {
     if (/INPUT|TEXTAREA|BUTTON|SELECT/.test(e.target.tagName)) return;
     if (e.key !== ' ' && e.key !== 'Enter') return;
     if (state.mode === 'spell') { e.preventDefault(); spellPress(); }
-    else if (state.mode === 'hide') { e.preventDefault(); hidePress(); }
+    else if (state.mode === 'hide') { e.preventDefault(); hidePress(false); }
+    else if (state.mode === 'rand') { e.preventDefault(); hidePress(true); }
   });
 
   /* ---------- بداية التشغيل ---------- */
   try {
     const saved = localStorage.getItem(STORE_KEY);
     if (saved) { input.value = saved; setSentence(saved); setFold(true); }
-  } catch (_) {}
+    else input.value = SAMPLE;
+  } catch (_) { input.value = SAMPLE; }
   render();
   if (!state.words.length) input.focus();
 })();
