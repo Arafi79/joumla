@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>تدريب على قراءة جملة</title>
+<title>القراءة الإجمالية</title>
 <style>
   :root {
     --bg: #e9f0f6;
@@ -15,6 +15,8 @@
     --accent-ink: #ffffff;
     --accent-soft: #dfe1fb;
 
+    --warn: #99590a;
+    --sw-bg: #c0267a; --sw-bd: #8a1a58; --sw-tx: #ffffff;
     --ok-bg: #d4f4df;  --ok-line: #25a561;  --ok-ink: #0b4727;
     --bad-bg: #fddddc; --bad-line: #dc4442; --bad-ink: #6a1211;
 
@@ -37,6 +39,8 @@
       --accent-ink: #0d1020;
       --accent-soft: #232a52;
 
+      --warn: #eab35c;
+      --sw-bg: #d6559a; --sw-bd: #f08cc0; --sw-tx: #1a0610;
       --ok-bg: #123a27;  --ok-line: #3bc47c; --ok-ink: #c9f5dc;
       --bad-bg: #4a1a1a; --bad-line: #f06a67; --bad-ink: #ffd8d7;
 
@@ -72,6 +76,7 @@
     gap: 1rem;
     padding: .6rem 1.1rem;
   }
+  .top-left-actions { display: flex; align-items: center; gap: .5rem; }
   .top-bar h1 { margin: 0; font-size: 1.15rem; font-weight: 700; }
   .btn-fold {
     display: inline-flex; align-items: center; gap: .45rem;
@@ -86,6 +91,19 @@
   .btn-fold svg { transition: transform .3s; }
   .btn-fold[aria-expanded="false"] svg { transform: rotate(180deg); }
 
+  /* زر أيقونة المساعدة لجلب الجولة الاستكشافية */
+  .btn-help-tour {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.2rem; height: 2.2rem;
+    border: 1.5px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: border-color .15s, background .15s;
+  }
+  .btn-help-tour:hover { border-color: var(--accent); background: var(--accent-soft); }
+
   .fold-body {
     display: grid; grid-template-rows: 1fr;
     transition: grid-template-rows .3s ease;
@@ -98,7 +116,7 @@
     max-width: 980px; margin: 0 auto;
   }
   .fold-form textarea {
-    flex: 1;
+    width: 100%;
     min-height: 3.6rem;
     resize: vertical;
     padding: .7rem .9rem;
@@ -107,6 +125,17 @@
     background: var(--bg);
     font-size: 1.25rem;
   }
+  .fields { flex: 1; display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
+  .intr-field { display: flex; align-items: center; gap: .7rem; font-size: .95rem; color: var(--muted); }
+  .intr-field span { white-space: nowrap; }
+  .intr-field input {
+    flex: 1; min-width: 0;
+    padding: .5rem .8rem;
+    border: 1.5px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--ink);
+    font: inherit; font-size: 1.1rem;
+  }
+  .field-note { min-height: 1.2em; color: var(--muted); }
   .form-actions { display: flex; flex-direction: column; gap: .5rem; }
   .form-actions .btn-ghost { padding: .45rem 1rem; }
   .btn-primary {
@@ -185,6 +214,28 @@
     transform-origin: right center;
     animation: drain 3s linear forwards;
   }
+  .word.flash { --w-bg: var(--bad-bg); --w-bd: var(--bad-line); --w-tx: var(--bad-ink); animation: shake .4s; }
+  .word.chip {
+    --w-bg: transparent; --w-bd: var(--line); --w-tx: var(--muted);
+    font-size: calc(var(--fs) * .62);
+    border-bottom-width: 4px; border-radius: 12px;
+    text-decoration: line-through;
+    box-shadow: none;
+  }
+  .trash-wrap {
+    width: min(760px, 100%);
+    padding: .9rem 1rem 1.1rem;
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--panel) 60%, transparent);
+  }
+  .trash-wrap h2 {
+    display: flex; align-items: center; justify-content: center; gap: .5rem;
+    margin: 0 0 .7rem; font-size: 1rem; font-weight: 600; color: var(--muted);
+  }
+  .trash-count { font-variant-numeric: tabular-nums; color: var(--ink); }
+  .trash { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; min-height: 3rem; align-items: center; }
+  .trash-empty { color: var(--muted); font-size: .95rem; opacity: .8; }
   .word.pop { animation: pop .42s cubic-bezier(.2, 1.5, .4, 1); }
   .word.enter { animation: enter .45s both cubic-bezier(.2, 1.2, .4, 1); animation-delay: var(--d, 0ms); }
 
@@ -222,7 +273,18 @@
   }
   .status { margin: 0; min-height: 1.6em; color: var(--muted); font-size: 1rem; text-align: center; }
   .opts { margin: 0; font-size: .95rem; color: var(--muted); }
+  .opts { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .4rem 1.2rem; }
+  .opts[hidden] { display: none; }
   .opts label { cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; }
+  .stepper { display: inline-flex; align-items: center; gap: .45rem; }
+  .stepper output { min-width: 1.4em; text-align: center; font-weight: 700; color: var(--ink); }
+  .step-btn {
+    width: 1.9rem; height: 1.9rem; border-radius: 50%;
+    border: 1.5px solid var(--line); background: var(--bg);
+    cursor: pointer; line-height: 1; font-size: 1.1rem;
+  }
+  .step-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .step-btn:disabled { opacity: .4; cursor: not-allowed; }
   .modes { display: flex; gap: .7rem; flex-wrap: wrap; justify-content: center; width: 100%; }
   .mode {
     flex: 1 1 9rem; max-width: 15rem;
@@ -247,7 +309,114 @@
     text-underline-offset: 4px;
   }
 
-  /* رابط شرح التشغيل: الزاوية السفلية اليسرى (left فيزيائي وليس منطقياً) */
+  /* مرحلة الاستبدال */
+  .subs {
+    max-width: 980px; margin: 0 auto;
+    padding: .2rem 1.1rem 1.2rem;
+    border-top: 1px dashed var(--line);
+  }
+  .subs h2 { margin: .9rem 0 .2rem; font-size: 1.1rem; }
+  .opt-tag {
+    margin-inline-start: .4rem; padding: .05rem .6rem;
+    border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+    font-size: .8rem; font-weight: 600; vertical-align: middle;
+  }
+  .subs-help { margin: 0 0 .8rem; color: var(--muted); font-size: .95rem; }
+  .subs-help b { color: var(--ink); }
+  .subs-rows {
+    display: flex; flex-direction: column; gap: .6rem;
+    max-height: 42vh; overflow: auto; padding: .2rem;
+  }
+  .subs-row { display: flex; align-items: flex-start; gap: .8rem; }
+  .word.mini {
+    flex: none; width: 7.5rem;
+    padding: .15em .6em .25em;
+    font-size: 1.15rem; border-bottom-width: 4px; border-radius: 12px;
+    box-shadow: none; overflow-wrap: anywhere;
+  }
+  .subs-field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
+  .subs-field input {
+    width: 100%;
+    padding: .45rem .8rem;
+    border: 1.5px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--ink);
+    font: inherit; font-size: 1.1rem;
+  }
+  .row-msg { min-height: 1.15em; font-size: .85rem; color: var(--muted); }
+  .subs-row.is-ok input { border-color: var(--ok-line); }
+  .subs-row.is-ok .row-msg { color: var(--ok-line); }
+  .subs-row.is-ok .row-msg.warn, .row-msg.warn { color: var(--warn); }
+  .subs-row.is-bad input { border-color: var(--bad-line); }
+  .subs-row.is-bad .row-msg { color: var(--bad-line); }
+  .subs-msg { margin: .7rem 0 0; min-height: 1.4em; color: var(--muted); font-size: .95rem; }
+  .subs-msg.err { color: var(--bad-line); font-weight: 600; }
+  .subs-actions { display: flex; gap: .7rem; margin-top: .6rem; }
+  .subs-actions .btn-primary { padding: .6rem 1.4rem; }
+  .subs-actions .btn-ghost { padding: .6rem 1.2rem; }
+  .word.done { --w-bd: var(--ok-line); }
+  .word.target {
+    outline: 3px solid var(--accent); outline-offset: 3px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 10px 18px -12px rgba(10,20,40,.55); }
+    50%      { box-shadow: 0 0 0 10px transparent, 0 10px 18px -12px rgba(10,20,40,.55); }
+  }
+
+  /* الاستبدال */
+  .word.static { opacity: .82; }
+  .word.picked { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .word .badge {
+    position: absolute; top: -.7rem; inset-inline-start: -.4rem;
+    padding: 0 .55em; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: .5em; font-weight: 700; line-height: 1.7;
+    font-variant-numeric: tabular-nums;
+  }
+  .swap-out {
+    width: min(1040px, 100%);
+    padding: .9rem 1rem 1.2rem;
+    border: 2px solid color-mix(in srgb, var(--sw-bg) 55%, transparent);
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--sw-bg) 8%, transparent);
+  }
+  .swap-out h2 {
+    margin: 0 0 .8rem; text-align: center;
+    font-size: 1rem; font-weight: 600; color: var(--sw-bg);
+  }
+  .word.alt { --h: 330; }
+  .word.swapped { --w-bg: var(--sw-bg); --w-bd: var(--sw-bd); --w-tx: var(--sw-tx); }
+  .segs { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg {
+    padding: .15rem 1rem; border: 0; background: var(--bg);
+    cursor: pointer; font-size: 1rem; font-weight: 700;
+  }
+  .seg[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+  /* تبويبات الإعداد */
+  .tabs { display: flex; gap: .4rem; margin: .5rem 0 .8rem; border-bottom: 1.5px solid var(--line); }
+  .tab {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .5rem 1.2rem;
+    border: 0; border-bottom: 3px solid transparent; margin-bottom: -1.5px;
+    border-radius: 10px 10px 0 0;
+    background: transparent; color: var(--muted);
+    font-size: 1.05rem; font-weight: 600; cursor: pointer;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-soft); }
+  .tab-count {
+    min-width: 1.5em; padding: 0 .4em; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: .8rem; text-align: center;
+  }
+  .tab-count[hidden] { display: none; }
+  [role="tabpanel"][hidden] { display: none; }
+  .word.slot.q span { font-size: .9em; opacity: .8; }
+  button.word:disabled { cursor: default; }
+  button.word:disabled:hover { translate: none; }
+
+  /* رابط شرح التشغيل: الزاوية السفلية اليسرى */
   .help-link {
     position: absolute;
     left: calc(.9rem + env(safe-area-inset-left, 0px));
@@ -273,6 +442,41 @@
   @media (max-width: 560px) {
     .help-link { padding: .25rem; }
     .help-link .help-text { display: none; }
+  }
+
+  /* ---------- فقاعات جولة الاستكشاف (Tour Tooltips / Popover) ---------- */
+  .tour-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(8, 14, 24, .45);
+    backdrop-filter: blur(2px);
+    display: grid; place-items: center;
+  }
+  .tour-overlay[hidden] { display: none; }
+  .tour-box {
+    position: absolute;
+    width: min(22rem, 90vw);
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 18px;
+    padding: 1.2rem;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    animation: pop .3s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .tour-box h3 { margin: 0 0 .5rem; font-size: 1.1rem; color: var(--accent); }
+  .tour-box p { margin: 0 0 1rem; font-size: .95rem; color: var(--ink); line-height: 1.5; }
+  .tour-footer { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+  .tour-steps { font-size: .85rem; color: var(--muted); font-weight: 700; }
+  .tour-btns { display: flex; gap: .4rem; }
+  .tour-btns button { padding: .35rem .8rem; font-size: .85rem; border-radius: 8px; }
+  
+  /* تسليط الضوء على العنصر المستهدف في الجولة */
+  .tour-highlight {
+    position: relative;
+    z-index: 101 !important;
+    box-shadow: 0 0 0 4px var(--accent), 0 0 20px 5px rgba(58, 63, 180, 0.4) !important;
+    border-radius: 12px;
+    background-color: var(--panel) !important;
+    transition: box-shadow .3s ease;
   }
 
   /* ---------- الاحتفال ---------- */
@@ -309,24 +513,17 @@
   }
   .btn-ghost:hover { border-color: var(--accent); }
   #confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
-
-  @media (max-width: 560px) {
-    .fold-form { flex-direction: column; }
-    .btn-primary { padding: .7rem 1rem; }
-    .form-actions { flex-direction: row; }
-    .form-actions > * { flex: 1; }
-    .mode small { display: none; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-  }
 </style>
 </head>
 <body>
 
 <header class="top">
   <div class="top-bar">
-    <h1>تدريب الجملة</h1>
+    <div class="top-left-actions">
+      <h1>القراءة الإجمالية</h1>
+      <!-- زر إطلاق الجولة الاستكشافية -->
+      <button class="btn-help-tour" id="helpTourBtn" type="button" title="بدء الجولة الاستكشافية" aria-label="بدء الجولة الاستكشافية">❔</button>
+    </div>
     <button class="btn-fold" id="foldBtn" type="button" aria-expanded="true" aria-controls="foldBody">
       <span id="foldLabel">طيّ الحقل</span>
       <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -335,12 +532,39 @@
   <div class="fold-body" id="foldBody">
     <div class="fold-inner">
       <form class="fold-form" id="sentenceForm">
-        <textarea id="sentenceInput" rows="2" placeholder="اكتب الجملة هنا ثم اضغط Enter" aria-label="الجملة"></textarea>
-        <div class="form-actions">
+        <div class="fields" id="tourStepSentence">
+          <textarea id="sentenceInput" rows="2" placeholder="اكتب الجملة هنا ثم اضغط Enter" aria-label="الجملة"></textarea>
+          <label class="intr-field">
+            <span>كلمات دخيلة (اختياري)</span>
+            <input id="intrInput" type="text" autocomplete="off" placeholder="افصل بينها بفاصلة أو مسافة، مثال: كتاب، نافذة">
+          </label>
+          <small class="field-note" id="intrNote"></small>
+        </div>
+        <div class="form-actions" id="tourStepSubmit">
           <button class="btn-primary" type="submit">اعتماد الجملة</button>
           <button class="btn-ghost" type="button" id="sampleBtn" title="قُمْ لِلْمُعَلِّمِ وَفِّهِ التَّبْجِيلَا">جملة نموذجية</button>
         </div>
       </form>
+      <section class="subs" id="subs" hidden aria-labelledby="subsTitle">
+        <h2 id="subsTitle">المرادفات والاستبدال <span class="opt-tag">اختياري</span></h2>
+        <div class="tabs" role="tablist" aria-label="نوع البدائل" id="tourStepTabs">
+          <button class="tab active" type="button" role="tab" id="tabSyn" data-tab="syn" aria-selected="true" aria-controls="panelSyn">المرادفات <span class="tab-count" id="countSyn" hidden></span></button>
+          <button class="tab" type="button" role="tab" id="tabSwap" data-tab="swap" aria-selected="false" aria-controls="panelSwap" tabindex="-1">الاستبدال <span class="tab-count" id="countSwap" hidden></span></button>
+        </div>
+        <div role="tabpanel" id="panelSyn" aria-labelledby="tabSyn">
+          <p class="subs-help" id="tourStepSynInput"><b>المرادفات:</b> أمام كل كلمة اكتب ثلاث كلمات بالضبط، <b>الأولى هي المرادف الصحيح</b> والأخريان خاطئتان. يُخلط ترتيبها عند العرض. اترك الحقل فارغاً لتجاهل الكلمة.</p>
+          <div class="subs-rows" id="rowsSyn"></div>
+        </div>
+        <div role="tabpanel" id="panelSwap" aria-labelledby="tabSwap" hidden>
+          <p class="subs-help" id="tourStepSwapInput"><b>الاستبدال:</b> أمام كل كلمة اكتب أي عدد من الكلمات، <b>كلها صحيحة</b>، بحيث إذا حلّت محلها بقيت الجملة سليمة لغوياً بمعنى آخر. اترك الحقل فارغاً لتجاهل الكلمة.</p>
+          <div class="subs-rows" id="rowsSwap"></div>
+        </div>
+        <p class="subs-msg" id="subsMsg" role="alert"></p>
+        <div class="subs-actions">
+          <button class="btn-primary" type="button" id="subsSave">حفظ وطيّ</button>
+          <button class="btn-ghost" type="button" id="subsSkip">تخطي هذه المرحلة</button>
+        </div>
+      </section>
     </div>
   </div>
 </header>
@@ -348,15 +572,47 @@
 <main>
   <p class="empty" id="empty"><b>أدخل جملة في الحقل أعلى الصفحة</b> ثم اضغط «اعتماد الجملة» لتظهر كلماتها هنا.</p>
   <section class="words" id="pool" aria-label="كلمات الجملة"></section>
+  <section class="swap-out" id="swapOut" hidden aria-label="الجملة بعد الاستبدال">
+    <h2>الجملة بعد الاستبدال</h2>
+    <div class="words" id="swapWords"></div>
+  </section>
   <section class="answer-wrap" id="answerWrap" hidden>
     <h2>الإجابة: رتّب الكلمات بالضغط عليها بالترتيب الصحيح</h2>
     <div class="words" id="answer"></div>
+  </section>
+  <section class="answer-wrap" id="optionsWrap" hidden>
+    <h2>اختر مرادف الكلمة المظللة</h2>
+    <div class="words" id="options"></div>
+  </section>
+  <section class="trash-wrap" id="trashWrap" hidden aria-label="سلة المهملات">
+    <h2>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/><path d="M10 11v6M14 11v6"/></svg>
+      سلة المهملات <span class="trash-count" id="trashCount"></span>
+    </h2>
+    <div class="trash" id="trash"></div>
   </section>
 </main>
 
 <footer class="bottom">
   <p class="status" id="status" aria-live="polite"></p>
-  <div class="modes">
+  <p class="opts" id="swapOpts" hidden>
+    <span>أقصى عدد كلمات مستبدلة معاً</span>
+    <span class="segs" role="group" aria-label="أقصى عدد كلمات مستبدلة معاً">
+      <button class="seg" type="button" data-n="1" aria-pressed="false">١</button>
+      <button class="seg" type="button" data-n="2" aria-pressed="true">٢</button>
+    </span>
+  </p>
+  <p class="opts" id="intrOpts" hidden>
+    <label><input type="checkbox" id="useIntr"> إضافة كلمات دخيلة إلى التشويش</label>
+    <span class="stepper">
+      العدد
+      <button class="step-btn" type="button" id="intrMinus" aria-label="إنقاص العدد">−</button>
+      <output id="intrCount" aria-live="polite">١</output>
+      <button class="step-btn" type="button" id="intrPlus" aria-label="زيادة العدد">+</button>
+      <small id="intrMax"></small>
+    </span>
+  </p>
+  <div class="modes" id="tourStepModes">
     <button class="mode" type="button" data-mode="spell" aria-pressed="false">
       <b>تهجئة</b><small>كلمة بعد كلمة</small>
     </button>
@@ -365,6 +621,15 @@
     </button>
     <button class="mode" type="button" data-mode="rand" aria-pressed="false">
       <b>إخفاء عشوائي</b><small>كلمة مختلفة في كل ضغطة</small>
+    </button>
+    <button class="mode" type="button" data-mode="sort" aria-pressed="false">
+      <b>فرز الدخيل</b><small>انقل الدخيلة إلى السلة</small>
+    </button>
+    <button class="mode" type="button" data-mode="syn" aria-pressed="false">
+      <b>مرادفات</b><small>اختر المرادف من ثلاث</small>
+    </button>
+    <button class="mode" type="button" data-mode="swap" aria-pressed="false">
+      <b>استبدال</b><small>بدّل كلمة بأخرى سليمة</small>
     </button>
     <button class="mode" type="button" data-mode="scramble" aria-pressed="false">
       <b>تشويش</b><small>أعد ترتيب الجملة</small>
@@ -378,6 +643,21 @@
     <span class="help-text">طريقة التشغيل</span>
   </a>
 </footer>
+
+<!-- فقاعة الجولة الاستكشافية التفاعلية -->
+<div class="tour-overlay" id="tourOverlay" hidden>
+  <div class="tour-box" id="tourBox">
+    <h3 id="tourTitle">عنوان الخطوة</h3>
+    <p id="tourText">وصف تفصيلي للخطوة أو الميزة الحالية في الصفحة.</p>
+    <div class="tour-footer">
+      <span class="tour-steps" id="tourStepsCount">١ من ٦</span>
+      <div class="tour-btns">
+        <button class="btn-ghost" type="button" id="tourPrev">السابق</button>
+        <button class="btn-primary" type="button" id="tourNext">التالي</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="overlay" id="celebrate" hidden role="dialog" aria-modal="true" aria-labelledby="celebrateTitle">
   <div class="celebrate-card">
@@ -399,34 +679,165 @@
   const $ = s => document.querySelector(s);
   const fa = n => Number(n).toLocaleString('ar-EG');
   const STORE_KEY = 'sentence-trainer:last';
+  const STORE_INTR = 'sentence-trainer:intruders';
+  const STORE_SUBS = 'sentence-trainer:subs';
+  const STORE_TOUR = 'sentence-trainer:tour-seen';
   const WRONG_MS = 3000;
   const SAMPLE = 'قُمْ لِلْمُعَلِّمِ وَفِّهِ التَّبْجِيلَا';
+  const SAMPLE_INTR = 'كِتَابٌ، نَافِذَةٌ، سَحَابَةٌ';
+  const SAMPLE_ROWS = {
+    syn: [
+      'انْهَضْ، اقْعُدْ، نَمْ',
+      'لِلْمُدَرِّسِ، لِلطَّبِيبِ، لِلْجَارِ',
+      'أَعْطِهِ، أَهْمِلْهُ، اتْرُكْهُ',
+      'التَّعْظِيمَا، التَّحْقِيرَا، التَّجْهِيلَا'
+    ],
+    swap: [
+      'اسْعَ، انْظُرْ',
+      'لِلْأَبِ، لِلْجَارِ، لِلضَّيْفِ',
+      'أَعْطِهِ، امْنَحْهُ',
+      'الاحْتِرَامَا، التَّقْدِيرَا'
+    ]
+  };
+  const SEP = '\u0001';
+  const SPLIT = /[\s,،;؛]+/;
+  let sampleArmed = false;
+  let activeTab = 'syn';
 
   const state = {
     words: [],
-    mode: 'view',          // view | spell | hide | scramble
-    spell: 0,              // عدد الكلمات الظاهرة في التهجئة
-    hideIdx: -1,           // فهرس الكلمة المخفية
-    pop: -1,               // بطاقة تُحرَّك عند الظهور
-    pool: [],              // [{id, t}] بعد التشويش
-    placed: [],            // معرّفات الكلمات الموضوعة صحيحاً بالترتيب
-    wrong: null,           // معرّف الكلمة الخاطئة المؤقتة
+    intruders: [],
+    mode: 'view',
+    spell: 0,
+    hideIdx: -1,
+    pop: -1,
+    pool: [],
+    placed: [],
+    trashed: [],
+    k: 0,
+    wrong: null,
     locked: false,
     mistakes: 0,
     enter: false,
-    timer: null
+    timer: null,
+    useIntr: false,
+    intrK: 1,
+    sentenceKey: '',
+    rows: [],
+    subs: [],
+    swapRows: [],
+    swaps: [],
+    qOrder: [], qPos: 0, qDone: [], qOpts: [], qSolved: false, qSel: null,
+    swapIdx: [],
+    swapOrder: [],
+    swapMax: 2,
+    swapMsg: ''
   };
 
   const hue = i => (i * 47 + 160) % 360;
+  const norm = s => s.replace(/[\u064B-\u065F\u0670\u0640]/g, '');
   function mk(tag, cls, text) {
     const el = document.createElement(tag);
     if (cls) el.className = cls;
     if (text != null) el.textContent = text;
     return el;
   }
+  function shuffled(a) {
+    const r = a.slice();
+    for (let i = r.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [r[i], r[j]] = [r[j], r[i]];
+    }
+    return r;
+  }
 
-  /* ---------- حقل الجملة والطيّ ---------- */
-  const foldBody = $('#foldBody'), foldBtn = $('#foldBtn'), input = $('#sentenceInput');
+  /* ---------- نظام الجولة الاستكشافية التفاعلية مع تبويبات المرادفات والاستبدال ---------- */
+  const tourSteps = [
+    {
+      target: '#tourStepSentence',
+      title: '1) إدخال الجملة والدخيلة',
+      text: 'اكتب هنا الجملة المراد التدريب عليها، ويمكنك إدخال كلمات دخيلة اختيارية. اضغط «جملة نموذجية» لتجربة سريعة.'
+    },
+    {
+      target: '#tourStepSubmit',
+      title: '2) اعتماد الجملة',
+      text: 'اضغط «اعتماد الجملة» لتقسيم الكلمات وإظهار لوحة إعداد المرادفات والبدائل أسفلها.'
+    },
+    {
+      target: '#tourStepTabs',
+      title: '3) تبويب المرادفات',
+      text: 'هنا تنتقل بين تبويبات التخصيص. في تبويب المرادفات، اكتب لكل كلمة 3 كلمات مفصولة بفاصلة: الأولى هي المرادف الصحيح والأخريان خاطئتان.'
+    },
+    {
+      target: '#tourStepSwapInput',
+      title: '4) تبويب الاستبدال',
+      text: 'في تبويب الاستبدال، أدخل أي عدد من الكلمات البديلة الصحيحة لغوياً لتظهر للطلاب أثناء التدريب.'
+    },
+    {
+      target: '#tourStepModes',
+      title: '5) أنشطة التدريب السبعة',
+      text: 'من هنا ينتقل الطلاب بين الأنشطة المختلفة (تهجئة، إخفاء، فرز، مرادفات، استبدال، وتشويش) للتدريب التفاعلي.'
+    },
+    {
+      target: '#helpTourBtn',
+      title: '6) إعادة الجولة في أي وقت',
+      text: 'النقر على أيقونة المساعدة (❔) في أي وقت يعيد تشغيل هذه الجولة الاستكشافية.'
+    }
+  ];
+
+  let currentTourStep = 0;
+  const tourOverlay = $('#tourOverlay'), tourBox = $('#tourBox');
+
+  function showTourStep(idx) {
+    document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+    if (idx < 0 || idx >= tourSteps.length) {
+      tourOverlay.hidden = true;
+      try { localStorage.setItem(STORE_TOUR, 'true'); } catch (_) {}
+      return;
+    }
+    currentTourStep = idx;
+    const step = tourSteps[idx];
+    const targetEl = $(step.target);
+    
+    if (targetEl) {
+      targetEl.classList.add('tour-highlight');
+      // ضمان فتح اللوحة العلوية إذا كانت الخطوة تخص الإدخال أو التبويبات
+      if (idx <= 3) {
+        if (foldBody.classList.contains('closed')) setFold(false);
+        if (idx === 3) setTab('swap'); // تفعيل تبويب الاستبدال تلقائياً للخطوة الرابعة
+        if (idx === 2) setTab('syn');  // تفعيل تبويب المرادفات للخطوة الثالثة
+      }
+      const rect = targetEl.getBoundingClientRect();
+      tourBox.style.top = `${Math.min(window.innerHeight - 250, Math.max(20, rect.bottom + 15))}px`;
+      tourBox.style.left = `${Math.min(window.innerWidth - 360, Math.max(20, rect.left))}px`;
+    }
+
+    $('#tourTitle').textContent = step.title;
+    $('#tourText').textContent = step.text;
+    $('#tourStepsCount').textContent = `${fa(idx + 1)} من ${fa(tourSteps.length)}`;
+    $('#tourPrev').style.display = idx === 0 ? 'none' : 'inline-block';
+    $('#tourNext').textContent = idx === tourSteps.length - 1 ? 'إنهاء' : 'التالي';
+    tourOverlay.hidden = false;
+  }
+
+  $('#helpTourBtn').addEventListener('click', () => showTourStep(0));
+  $('#tourNext').addEventListener('click', () => {
+    if (currentTourStep + 1 >= tourSteps.length) {
+      document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+      tourOverlay.hidden = true;
+      try { localStorage.setItem(STORE_TOUR, 'true'); } catch (_) {}
+    } else {
+      showTourStep(currentTourStep + 1);
+    }
+  });
+  $('#tourPrev').addEventListener('click', () => {
+    if (currentTourStep > 0) showTourStep(currentTourStep - 1);
+  });
+
+  /* ---------- حقول الإدخال والطيّ ---------- */
+  const foldBody = $('#foldBody'), foldBtn = $('#foldBtn');
+  const input = $('#sentenceInput'), intrInput = $('#intrInput');
+
   function setFold(closed) {
     foldBody.classList.toggle('closed', closed);
     foldBody.inert = closed;
@@ -438,33 +849,95 @@
 
   $('#sentenceForm').addEventListener('submit', e => {
     e.preventDefault();
-    if (setSentence(input.value)) setFold(true);
+    const text = input.value;
+    const isSample = sampleArmed && text.trim().split(/\s+/).join(SEP) === SAMPLE.split(' ').join(SEP);
+    sampleArmed = false;
+    if (setSentence(text, intrInput.value, isSample ? SAMPLE_ROWS : null)) {
+      const box = $('#subs');
+      if (box.scrollIntoView) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   });
-  $('#sampleBtn').addEventListener('click', () => { input.value = SAMPLE; input.focus(); });
-  input.addEventListener('keydown', e => {
+  [input, intrInput].forEach(el => el.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       $('#sentenceForm').requestSubmit();
     }
+  }));
+  $('#sampleBtn').addEventListener('click', () => {
+    input.value = SAMPLE;
+    intrInput.value = SAMPLE_INTR;
+    sampleArmed = true;
+    input.focus();
   });
 
-  function setSentence(text) {
+  function parseIntruders(text, words) {
+    const seen = new Set(words.map(norm));
+    const out = [];
+    let ignored = 0;
+    text.split(SPLIT).filter(Boolean).forEach(w => {
+      const key = norm(w);
+      if (seen.has(key)) { ignored++; return; }
+      seen.add(key);
+      out.push(w);
+    });
+    return { out, ignored };
+  }
+
+  function setSentence(text, intrText, rowsParam) {
     const words = text.trim().split(/\s+/).filter(Boolean);
     if (!words.length) { input.focus(); return false; }
+    const { out, ignored } = parseIntruders(intrText || '', words);
+    const key = words.join(SEP);
+    const hadRows = state.rows.some(r => r && r.trim()) || state.swapRows.some(r => r && r.trim());
+    const fit = a => (Array.isArray(a) && a.length === words.length ? a.slice() : null);
+    let syn, swap, wasReset = false;
+    if (rowsParam) {
+      syn = fit(rowsParam.syn) || words.map(() => '');
+      swap = fit(rowsParam.swap) || words.map(() => '');
+    } else if (key === state.sentenceKey) {
+      syn = state.rows.slice();
+      swap = state.swapRows.slice();
+    } else {
+      syn = words.map(() => '');
+      swap = words.map(() => '');
+      wasReset = hadRows;
+    }
     clearTimeout(state.timer);
     Object.assign(state, {
-      words, mode: 'view', spell: 0, hideIdx: -1, pop: -1,
-      pool: [], placed: [], wrong: null, locked: false, mistakes: 0, enter: false
+      words, intruders: out, sentenceKey: key,
+      rows: syn, swapRows: swap,
+      subs: words.map(() => null), swaps: words.map(() => null),
+      mode: 'view', spell: 0, hideIdx: -1, pop: -1, enter: false
     });
-    try { localStorage.setItem(STORE_KEY, text.trim()); } catch (_) {}
+    resetRound();
+    state.intrK = Math.min(state.intrK, Math.max(1, out.length));
+    try {
+      localStorage.setItem(STORE_KEY, text.trim());
+      localStorage.setItem(STORE_INTR, (intrText || '').trim());
+    } catch (_) {}
+    $('#intrNote').textContent = (out.length || ignored)
+      ? `الكلمات الدخيلة المعتمدة: ${fa(out.length)}` +
+        (ignored ? ` — تم تجاهل ${fa(ignored)} لأنها مكررة أو مطابقة لكلمات الجملة` : '')
+      : '';
+    buildSubsUI();
+    if (wasReset) $('#subsMsg').textContent = 'تم مسح المرادفات وبدائل الاستبدال السابقة لأن الجملة تغيّرت.';
+    saveSubs();
     closeCelebrate();
     render();
     return true;
   }
 
-  /* ---------- الأنشطة ---------- */
+  function resetRound() {
+    clearTimeout(state.timer);
+    Object.assign(state, {
+      pool: [], placed: [], trashed: [], k: 0, wrong: null, locked: false, mistakes: 0,
+      qOrder: [], qPos: 0, qDone: [], qOpts: [], qSolved: false, qSel: null,
+      swapIdx: [], swapOrder: [], swapMsg: ''
+    });
+  }
+
   function spellPress() {
-    if (state.mode !== 'spell') { state.mode = 'spell'; state.spell = 0; resetScramble(); }
+    if (state.mode !== 'spell') { state.mode = 'spell'; state.spell = 0; resetRound(); }
     state.spell = state.spell >= state.words.length ? 0 : state.spell + 1;
     state.pop = state.spell > 0 ? state.spell - 1 : -1;
     render();
@@ -473,7 +946,7 @@
   function hidePress(random) {
     const n = state.words.length;
     const target = random ? 'rand' : 'hide';
-    if (state.mode !== target) { state.mode = target; state.hideIdx = -1; resetScramble(); }
+    if (state.mode !== target) { state.mode = target; state.hideIdx = -1; resetRound(); }
     const prev = state.hideIdx;
     let next;
     if (n === 1) {
@@ -484,29 +957,26 @@
       next = (prev + 1) % n;
     }
     state.hideIdx = next;
-    state.pop = prev;       // الكلمة التي أُعيد إظهارها
+    state.pop = prev;
     render();
   }
 
-  function resetScramble() {
-    clearTimeout(state.timer);
-    Object.assign(state, { pool: [], placed: [], wrong: null, locked: false, mistakes: 0 });
-  }
-
-  function shuffleNow() {
-    const orig = state.words;
-    const prevTexts = state.pool.map(p => p.t);
+  function shuffleNow(chosen) {
+    const n = state.words.length;
+    const orig = state.words.join(SEP);
+    const prevSeq = state.mode === 'scramble' ? state.pool.map(p => p.t).join(SEP) : '';
     let best = null;
     for (let tries = 0; tries < 40; tries++) {
-      const arr = orig.map((t, id) => ({ id, t }));
+      const arr = state.words.map((t, id) => ({ id, t, x: false }))
+        .concat(chosen.map((t, j) => ({ id: n + j, t, x: true })));
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       best = arr;
-      const differsOrig = arr.some((p, i) => p.t !== orig[i]);
-      const differsPrev = !prevTexts.length || arr.some((p, i) => p.t !== prevTexts[i]);
-      if (differsOrig && differsPrev) break;
+      const sentSeq = arr.filter(p => !p.x).map(p => p.t).join(SEP);
+      const poolSeq = arr.map(p => p.t).join(SEP);
+      if (sentSeq !== orig && (!prevSeq || poolSeq !== prevSeq)) break;
     }
     return best;
   }
@@ -514,91 +984,279 @@
   function scramblePress() {
     clearTimeout(state.timer);
     closeCelebrate();
-    state.mode = 'scramble';
-    state.pool = shuffleNow();
-    state.placed = [];
-    state.wrong = null;
-    state.locked = false;
-    state.mistakes = 0;
+    let chosen = [];
+    if (state.useIntr && state.intruders.length) {
+      chosen = shuffled(state.intruders).slice(0, Math.min(state.intrK, state.intruders.length));
+    }
+    const arr = shuffleNow(chosen);
+    resetRound();
+    Object.assign(state, { mode: 'scramble', pool: arr, k: chosen.length, enter: true });
+    render();
+    state.enter = false;
+  }
+
+  function sortPress() {
+    if (!state.intruders.length) return;
+    clearTimeout(state.timer);
+    closeCelebrate();
+    const n = state.words.length;
+    const items = state.words.map((t, id) => ({ id, t, x: false }));
+    state.intruders.forEach((t, j) => {
+      items.splice(Math.floor(Math.random() * (items.length + 1)), 0, { id: n + j, t, x: true });
+    });
+    resetRound();
+    Object.assign(state, { mode: 'sort', pool: items, k: state.intruders.length, enter: true });
+    render();
+    state.enter = false;
+  }
+
+  function synPress() {
+    const qs = state.subs.map((l, i) => (l ? i : -1)).filter(i => i >= 0);
+    if (!qs.length) return;
+    closeCelebrate();
+    resetRound();
+    state.mode = 'syn';
+    state.qOrder = shuffled(qs);
+    state.qPos = 0;
+    loadQuestion();
     state.enter = true;
     render();
     state.enter = false;
   }
 
-  function showAll() {
-    clearTimeout(state.timer);
+  function loadQuestion() {
+    const list = state.subs[state.qOrder[state.qPos]];
+    let opts;
+    for (let tries = 0; tries < 20; tries++) {
+      opts = shuffled(list.map((t, j) => ({ t, ok: j === 0 })));
+      if (!opts.every((o, j) => o.t === list[j])) break;
+    }
+    Object.assign(state, { qOpts: opts, qSolved: false, qSel: null, wrong: null, locked: false });
+  }
+
+  function pickOption(j) {
+    if (state.locked || state.qSolved || state.mode !== 'syn') return;
+    const before = snap();
+    if (state.qOpts[j].ok) {
+      state.qSolved = true; state.qSel = j; state.locked = true;
+      render();
+      play(before);
+      state.timer = setTimeout(nextQuestion, 1300);
+    } else {
+      state.mistakes++; state.wrong = j; state.locked = true;
+      render();
+      play(before);
+      state.timer = setTimeout(() => { state.wrong = null; state.locked = false; render(); }, WRONG_MS);
+    }
+  }
+
+  function nextQuestion() {
+    state.qDone.push(state.qOrder[state.qPos]);
+    state.qPos++;
+    state.locked = false;
+    if (state.qPos >= state.qOrder.length) {
+      render();
+      setTimeout(celebrate, 450);
+    } else {
+      loadQuestion();
+      state.enter = true;
+      render();
+      state.enter = false;
+    }
+  }
+
+  function swapPress() {
+    if (!state.swaps.some(Boolean)) return;
     closeCelebrate();
-    resetScramble();
+    resetRound();
+    state.mode = 'swap';
+    state.swapIdx = state.words.map(() => 0);
+    state.pop = -1;
+    render();
+  }
+
+  function pickSwap(i) {
+    const list = state.swaps[i];
+    if (state.mode !== 'swap' || !list) return;
+    const cur = state.swapIdx[i] || 0;
+    let reverted = false;
+    if (cur === 0) {
+      if (state.swapOrder.length >= state.swapMax) {
+        state.swapOrder.forEach(j => { state.swapIdx[j] = 0; });
+        state.swapOrder = [];
+        reverted = true;
+      }
+      state.swapOrder.push(i);
+    }
+    const next = (cur + 1) % (list.length + 1);
+    state.swapIdx[i] = next;
+    if (next === 0) state.swapOrder = state.swapOrder.filter(j => j !== i);
+    state.swapMsg = next === 0
+      ? `عادت «${state.words[i]}» إلى أصلها`
+      : `«${state.words[i]}» ← البديل ${fa(next)} من ${fa(list.length)}`;
+    if (reverted) state.swapMsg += ' · عادت الكلمات الأخرى إلى أصلها';
+    state.pop = i;
+    render();
+  }
+
+  function setSwapMax(n) {
+    state.swapMax = n;
+    if (state.mode === 'swap') {
+      state.swapIdx = state.words.map(() => 0);
+      state.swapOrder = [];
+      state.swapMsg = '';
+    }
+    render();
+  }
+
+  function showAll() {
+    closeCelebrate();
+    resetRound();
     state.mode = 'view';
     state.hideIdx = -1; state.spell = 0; state.pop = -1;
     render();
   }
 
-  /* ---------- حركة انتقال البطاقة (FLIP) ---------- */
-  function rectOf(id, area) {
-    const el = document.querySelector(`#${area} [data-id="${id}"]`);
-    return el ? el.getBoundingClientRect() : null;
+  function snap() {
+    const m = new Map();
+    document.querySelectorAll('[data-id]').forEach(el => m.set(el.dataset.id, el.getBoundingClientRect()));
+    return m;
   }
-  function flip(id, from) {
-    if (!from) return;
-    const el = document.querySelector(`[data-id="${id}"]`);
-    if (!el) return;
-    const to = el.getBoundingClientRect();
-    const dx = from.left - to.left, dy = from.top - to.top;
-    if (!dx && !dy) return;
-    el.animate(
-      [{ transform: `translate(${dx}px, ${dy}px)`, zIndex: 5 }, { transform: 'none', zIndex: 5 }],
-      { duration: 480, easing: 'cubic-bezier(.2,.8,.2,1)' }
-    );
+  function play(before) {
+    document.querySelectorAll('[data-id]').forEach(el => {
+      const from = before.get(el.dataset.id);
+      if (!from) return;
+      const to = el.getBoundingClientRect();
+      const dx = from.left - to.left, dy = from.top - to.top;
+      const sx = from.width / to.width, sy = from.height / to.height;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < .02 && Math.abs(sy - 1) < .02) return;
+      el.animate(
+        [
+          { transformOrigin: 'top left', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, zIndex: 5 },
+          { transformOrigin: 'top left', transform: 'none', zIndex: 5 }
+        ],
+        { duration: 480, easing: 'cubic-bezier(.2,.8,.2,1)' }
+      );
+    });
+  }
+
+  function checkDone() {
+    const done = state.mode === 'sort'
+      ? state.trashed.length === state.k
+      : state.placed.length === state.words.length && state.trashed.length === state.k;
+    if (done) setTimeout(celebrate, 650);
   }
 
   function pick(id) {
-    if (state.locked || state.mode !== 'scramble') return;
-    if (state.placed.includes(id)) return;
+    if (state.locked) return;
+    if (state.placed.includes(id) || state.trashed.includes(id)) return;
     const item = state.pool.find(p => p.id === id);
     if (!item) return;
-    const from = rectOf(id, 'pool');
-    const expected = state.words[state.placed.length];
 
-    if (item.t === expected) {
+    if (state.mode === 'sort') {
+      if (item.x) {
+        const before = snap();
+        state.trashed.push(id);
+        render();
+        play(before);
+        checkDone();
+      } else {
+        state.mistakes++;
+        flash(id);
+        setStatus(sortStatus());
+      }
+      return;
+    }
+
+    const before = snap();
+    if (item.x) {
+      state.trashed.push(id);
+      render();
+      play(before);
+      checkDone();
+      return;
+    }
+    if (item.t === state.words[state.placed.length]) {
       state.placed.push(id);
       render();
-      flip(id, from);
-      if (state.placed.length === state.words.length) setTimeout(celebrate, 650);
+      play(before);
+      checkDone();
     } else {
       state.mistakes++;
       state.wrong = id;
       state.locked = true;
       render();
-      flip(id, from);
+      play(before);
       state.timer = setTimeout(() => {
-        const back = rectOf(id, 'answer');
+        const back = snap();
         state.wrong = null;
         state.locked = false;
         render();
-        flip(id, back);
+        play(back);
       }, WRONG_MS);
     }
   }
 
-  /* ---------- العرض ---------- */
+  function flash(id) {
+    const el = document.querySelector(`#pool [data-id="${id}"]`);
+    if (!el) return;
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1200);
+  }
+
   function setStatus(t) { $('#status').textContent = t; }
+
+  function syncIntrUI() {
+    const max = state.intruders.length;
+    state.intrK = Math.min(Math.max(1, state.intrK), Math.max(1, max));
+    $('#intrOpts').hidden = !max;
+    $('#useIntr').checked = state.useIntr;
+    $('#intrCount').textContent = fa(state.intrK);
+    $('#intrMax').textContent = `الأقصى ${fa(max)}`;
+    $('#intrMinus').disabled = !state.useIntr || state.intrK <= 1;
+    $('#intrPlus').disabled = !state.useIntr || state.intrK >= max;
+  }
+
+  function syncButtons() {
+    const n = state.words.length;
+    const hasSyn = state.subs.some(Boolean), hasSwap = state.swaps.some(Boolean);
+    document.querySelectorAll('.mode').forEach(b => {
+      const m = b.dataset.mode, on = m === state.mode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+      let off = !n, tip = '';
+      if (m === 'sort' && !state.intruders.length) { off = true; tip = 'أدخل كلمات دخيلة في الحقل أعلى الصفحة أولاً'; }
+      if (m === 'syn' && !hasSyn) { off = true; tip = 'أدخل مرادفات في تبويب «المرادفات» أعلى الصفحة أولاً'; }
+      if (m === 'swap' && !hasSwap) { off = true; tip = 'أدخل بدائل في تبويب «الاستبدال» أعلى الصفحة أولاً'; }
+      b.disabled = off;
+      b.title = tip;
+    });
+  }
 
   function render() {
     const { words, mode } = state, n = words.length;
     $('#pool').textContent = '';
     $('#answer').textContent = '';
+    $('#options').textContent = '';
+    $('#swapWords').textContent = '';
+    $('#optionsWrap').hidden = !(n && mode === 'syn');
+    $('#swapOut').hidden = !(n && mode === 'swap' && state.swapOrder.length);
+    $('#swapOpts').hidden = mode !== 'swap';
+    document.querySelectorAll('.seg').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.n === state.swapMax)));
     $('#empty').hidden = n > 0;
     $('#answerWrap').hidden = !(n && mode === 'scramble');
-    document.querySelectorAll('.mode').forEach(b => {
-      const on = b.dataset.mode === mode;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-pressed', String(on));
-      b.disabled = !n;
-    });
+    $('#trashWrap').hidden = !(n && ((mode === 'scramble' && state.k > 0) || mode === 'sort'));
+    syncIntrUI();
+    syncButtons();
     $('#reset').disabled = !n || mode === 'view';
     if (!n) { setStatus(''); return; }
-    if (mode === 'scramble') renderScramble(n); else renderLinear(n);
+    if (mode === 'scramble') { renderScramble(n); renderTrash(); }
+    else if (mode === 'sort') { renderSort(); renderTrash(); }
+    else if (mode === 'syn') renderSyn();
+    else if (mode === 'swap') renderSwap();
+    else renderLinear(n);
   }
 
   function renderLinear(n) {
@@ -615,7 +1273,7 @@
     });
     state.pop = -1;
 
-    if (mode === 'view') setStatus('اختر نشاطاً من الأسفل: تهجئة أو إخفاء أو تشويش.');
+    if (mode === 'view') setStatus('اختر نشاطاً من الأسفل.');
     if (mode === 'spell') {
       if (state.spell === 0) setStatus('اضغط «تهجئة» لإظهار الكلمة الأولى.');
       else if (state.spell < n) setStatus(`الكلمة ${fa(state.spell)} من ${fa(n)}`);
@@ -628,10 +1286,109 @@
     }
   }
 
+  function renderSyn() {
+    const pool = $('#pool'), opts = $('#options');
+    const total = state.qOrder.length;
+    const cur = state.qPos < total ? state.qOrder[state.qPos] : -1;
+    state.words.forEach((w, i) => {
+      let c;
+      if (i === cur && !state.qSolved) {
+        c = mk('div', 'word target', w);
+        c.style.setProperty('--h', hue(i));
+      } else if (i === cur) {
+        c = mk('div', 'word ok', state.subs[i][0]);
+        c.dataset.id = 'o' + state.qSel;
+      } else if (state.qDone.includes(i)) {
+        c = mk('div', 'word done', state.subs[i][0]);
+        c.style.setProperty('--h', hue(i));
+      } else {
+        c = mk('div', 'word', w);
+        c.style.setProperty('--h', hue(i));
+      }
+      pool.appendChild(c);
+    });
+    if (cur >= 0) {
+      state.qOpts.forEach((o, j) => {
+        if (state.qSolved) {
+          const g = mk('div', 'word ghost', o.t);
+          g.setAttribute('aria-hidden', 'true');
+          opts.appendChild(g);
+          return;
+        }
+        const b = mk('button', 'word neutral' + (state.wrong === j ? ' bad' : '') + (state.enter ? ' enter' : ''), o.t);
+        b.type = 'button';
+        b.dataset.id = 'o' + j;
+        b.disabled = state.locked;
+        if (state.enter) b.style.setProperty('--d', `${j * 70}ms`);
+        b.addEventListener('click', () => pickOption(j));
+        opts.appendChild(b);
+      });
+    }
+    if (cur === -1) setStatus(`أحسنت! أجبت عن ${fa(total)} من ${fa(total)} · الأخطاء: ${fa(state.mistakes)}`);
+    else if (state.wrong !== null) setStatus('خيار غير صحيح. سيعود بعد ثلاث ثوانٍ.');
+    else if (state.qSolved) setStatus(state.qPos + 1 === total ? 'صحيح!' : 'صحيح! ننتقل إلى السؤال التالي…');
+    else setStatus(`السؤال ${fa(state.qPos + 1)} من ${fa(total)}: اختر مرادف الكلمة المظللة · الأخطاء: ${fa(state.mistakes)}`);
+  }
+
+  function renderSwap() {
+    const pool = $('#pool'), out = $('#swapWords');
+    state.words.forEach((w, i) => {
+      const list = state.swaps[i], cur = state.swapIdx[i] || 0;
+      let c;
+      if (list) {
+        c = mk('button', 'word swappable' + (cur > 0 ? ' picked' : ''), w);
+        c.type = 'button';
+        if (cur > 0) c.appendChild(mk('span', 'badge', `${fa(cur)}/${fa(list.length)}`));
+        c.addEventListener('click', () => pickSwap(i));
+      } else {
+        c = mk('div', 'word static', w);
+      }
+      c.style.setProperty('--h', hue(i));
+      pool.appendChild(c);
+    });
+
+    if (state.swapOrder.length) {
+      state.words.forEach((w, i) => {
+        const cur = state.swapIdx[i] || 0, swapped = cur > 0;
+        const c = mk('div',
+          'word alt' + (swapped ? ' swapped' : '') + (swapped && state.pop === i ? ' pop' : ''),
+          swapped ? state.swaps[i][cur - 1] : w);
+        out.appendChild(c);
+      });
+    }
+    state.pop = -1;
+
+    setStatus(state.swapMsg || ('اضغط على كلمة لتظهر الجملة بكلمة بديلة، وكل ضغطة تعرض البديل التالي. ' +
+      (state.swapMax === 1 ? 'الحد الأقصى: كلمة واحدة مستبدلة في الجملة.' : 'الحد الأقصى: كلمتان مستبدلتان في الجملة.')));
+  }
+
+  function renderSort() {
+    const pool = $('#pool');
+    state.pool.forEach((p, i) => {
+      if (state.trashed.includes(p.id)) return;
+      const b = mk('button', 'word' + (state.enter ? ' enter' : ''), p.t);
+      b.type = 'button';
+      b.dataset.id = p.id;
+      b.style.setProperty('--h', hue(i));
+      if (state.enter) b.style.setProperty('--d', `${i * 45}ms`);
+      b.addEventListener('click', () => pick(p.id));
+      pool.appendChild(b);
+    });
+    setStatus(sortStatus());
+  }
+
+  function sortStatus() {
+    const left = state.k - state.trashed.length;
+    if (left === 0) return 'أحسنت! أخرجت كل الكلمات الدخيلة.';
+    if (!state.trashed.length && !state.mistakes)
+      return `اضغط على الكلمات الدخيلة لنقلها إلى سلة المهملات. عددها: ${fa(state.k)}`;
+    return `الدخيلة المتبقية: ${fa(left)} من ${fa(state.k)} · الأخطاء: ${fa(state.mistakes)}`;
+  }
+
   function renderScramble(n) {
     const pool = $('#pool'), ans = $('#answer');
     state.pool.forEach((p, i) => {
-      if (state.placed.includes(p.id) || state.wrong === p.id) {
+      if (state.placed.includes(p.id) || state.trashed.includes(p.id) || state.wrong === p.id) {
         const g = mk('div', 'word ghost', p.t);
         g.setAttribute('aria-hidden', 'true');
         pool.appendChild(g);
@@ -663,19 +1420,46 @@
       }
     }
 
-    if (state.wrong !== null) setStatus('كلمة غير صحيحة في هذا الموضع. ستعود إلى مكانها بعد ثلاث ثوانٍ.');
-    else if (state.placed.length === n) setStatus('أحسنت! اكتملت الجملة.');
-    else setStatus(`المتبقي ${fa(n - state.placed.length)} من ${fa(n)} كلمة · الأخطاء: ${fa(state.mistakes)}`);
+    const intrLeft = state.k - state.trashed.length;
+    if (state.wrong !== null) {
+      setStatus('كلمة غير صحيحة في هذا الموضع. ستعود إلى مكانها بعد ثلاث ثوانٍ.');
+    } else if (state.placed.length === n && intrLeft === 0) {
+      setStatus('أحسنت! اكتملت الجملة.');
+    } else if (state.placed.length === n) {
+      setStatus(`رتّبت الجملة. بقيت ${fa(intrLeft)} من الكلمات الدخيلة، انقلها إلى السلة.`);
+    } else {
+      setStatus(`المتبقي ${fa(n - state.placed.length)} من ${fa(n)} كلمة` +
+        (state.k ? ` · الدخيلة المتبقية: ${fa(intrLeft)}` : '') +
+        ` · الأخطاء: ${fa(state.mistakes)}`);
+    }
   }
 
-  /* ---------- الاحتفال ---------- */
+  function renderTrash() {
+    const tr = $('#trash');
+    tr.textContent = '';
+    state.trashed.forEach(id => {
+      const it = state.pool.find(p => p.id === id);
+      const c = mk('div', 'word chip', it.t);
+      c.dataset.id = id;
+      tr.appendChild(c);
+    });
+    if (!state.trashed.length) tr.appendChild(mk('span', 'trash-empty', 'اضغط على الكلمة الدخيلة لتنتقل إلى هنا'));
+    $('#trashCount').textContent = `${fa(state.trashed.length)} / ${fa(state.k)}`;
+  }
+
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function celebrate() {
-    $('#celebrateSentence').textContent = state.words.join(' ');
-    $('#celebrateStats').textContent = state.mistakes === 0
-      ? 'أنهيتها دون أي خطأ.'
-      : `عدد المحاولات الخاطئة: ${fa(state.mistakes)}`;
+    const { mode } = state;
+    const titles = { sort: 'أحسنت! أخرجت كل الكلمات الدخيلة', syn: 'أحسنت! أجبت عن كل المرادفات' };
+    $('#celebrateTitle').textContent = titles[mode] || 'أحسنت! نجحت';
+    $('#celebrateSentence').textContent = (mode === 'syn'
+      ? state.words.map((w, i) => (state.subs[i] ? state.subs[i][0] : w))
+      : state.words).join(' ');
+    let stats = state.mistakes === 0 ? 'أنهيتها دون أي خطأ.' : `عدد المحاولات الخاطئة: ${fa(state.mistakes)}`;
+    if (mode === 'scramble' && state.k) stats += ` · الكلمات الدخيلة المحذوفة: ${fa(state.k)}`;
+    $('#celebrateStats').textContent = stats;
+    $('#again').textContent = { sort: 'فرز جديد', syn: 'جولة جديدة' }[mode] || 'تشويش جديد';
     $('#celebrate').hidden = false;
     $('#again').focus();
     chime();
@@ -683,7 +1467,11 @@
   }
   function closeCelebrate() { $('#celebrate').hidden = true; }
 
-  $('#again').addEventListener('click', scramblePress);
+  $('#again').addEventListener('click', () => {
+    if (state.mode === 'sort') sortPress();
+    else if (state.mode === 'syn') synPress();
+    else scramblePress();
+  });
   $('#closeCelebrate').addEventListener('click', closeCelebrate);
   $('#celebrate').addEventListener('click', e => { if (e.target.id === 'celebrate') closeCelebrate(); });
   addEventListener('keydown', e => { if (e.key === 'Escape') closeCelebrate(); });
@@ -742,17 +1530,193 @@
     })(start);
   }
 
-  /* ---------- ربط الأزرار ---------- */
+  function checkSyn(raw, word) {
+    const t = raw.trim();
+    if (!t) return { status: 'empty' };
+    const list = t.split(SPLIT).filter(Boolean);
+    if (list.length < 3) return { status: 'bad', msg: `ناقصة: أدخلت ${fa(list.length)} فقط، والمطلوب ثلاث كلمات بالضبط.` };
+    if (list.length > 3) return { status: 'bad', msg: `زائدة: أدخلت ${fa(list.length)}، والمطلوب ثلاث كلمات بالضبط.` };
+    if (new Set(list.map(norm)).size < 3) return { status: 'bad', msg: 'يجب أن تكون الكلمات الثلاث مختلفة عن بعضها.' };
+    let warn = '';
+    if (norm(list[0]) === norm(word)) warn = 'تنبيه: الكلمة الأولى (الصحيحة) مطابقة لكلمة الجملة نفسها وليست مرادفاً لها.';
+    else if (list.slice(1).some(x => norm(x) === norm(word))) warn = 'تنبيه: إحدى الكلمتين الخاطئتين مطابقة لكلمة الجملة نفسها.';
+    return { status: 'ok', list, warn };
+  }
+
+  function checkSwap(raw, word) {
+    const t = raw.trim();
+    if (!t) return { status: 'empty' };
+    const seen = new Set([norm(word)]);
+    const list = [];
+    let dropped = 0;
+    t.split(SPLIT).filter(Boolean).forEach(w => {
+      const k = norm(w);
+      if (seen.has(k)) { dropped++; return; }
+      seen.add(k);
+      list.push(w);
+    });
+    if (!list.length) return { status: 'bad', msg: 'كل ما أدخلته مكرر أو مطابق للكلمة الأصلية، أضف كلمة مختلفة.' };
+    return {
+      status: 'ok', list,
+      warn: dropped ? `تم تجاهل ${fa(dropped)} (مكررة أو مطابقة للكلمة الأصلية).` : ''
+    };
+  }
+
+  const KINDS = {
+    syn:  { rows: 'rows',     lists: 'subs',  check: checkSyn,  box: '#rowsSyn',  badge: '#countSyn',
+            hint: 'الصحيحة (المرادف) أولاً ثم كلمتان خاطئتان، بفاصلة' },
+    swap: { rows: 'swapRows', lists: 'swaps', check: checkSwap, box: '#rowsSwap', badge: '#countSwap',
+            hint: 'كلمات بديلة سليمة لغوياً، افصل بينها بفاصلة' }
+  };
+
+  function applyRow(kind, i, row, msgEl) {
+    const K = KINDS[kind];
+    const r = K.check(state[K.rows][i] || '', state.words[i]);
+    row.classList.toggle('is-bad', r.status === 'bad');
+    row.classList.toggle('is-ok', r.status === 'ok');
+    msgEl.classList.toggle('warn', !!r.warn);
+    let text = '';
+    if (r.status === 'bad') text = r.msg;
+    else if (r.warn) text = r.warn;
+    else if (r.status === 'ok') text = kind === 'swap' ? `✓ جاهزة (${fa(r.list.length)})` : '✓ جاهزة';
+    msgEl.textContent = text;
+    state[K.lists][i] = r.status === 'ok' ? r.list : null;
+  }
+
+  function counts(kind) {
+    const K = KINDS[kind];
+    let ok = 0, bad = 0;
+    state[K.rows].forEach((raw, i) => {
+      if (state[K.lists][i]) ok++;
+      else if (raw && raw.trim()) bad++;
+    });
+    return { ok, bad, empty: state.words.length - ok - bad };
+  }
+
+  function subsSummary() {
+    const c = counts(activeTab);
+    const m = $('#subsMsg');
+    m.classList.remove('err');
+    m.textContent = `جاهزة: ${fa(c.ok)} · غير مكتملة: ${fa(c.bad)} · متجاهَلة (فارغة): ${fa(c.empty)}`;
+    Object.keys(KINDS).forEach(k => {
+      const n = counts(k).ok, b = $(KINDS[k].badge);
+      b.textContent = n ? fa(n) : '';
+      b.hidden = !n;
+    });
+  }
+
+  function saveSubs() {
+    try {
+      localStorage.setItem(STORE_SUBS, JSON.stringify({ s: state.sentenceKey, syn: state.rows, swap: state.swapRows }));
+    } catch (_) {}
+  }
+
+  function buildRows(kind) {
+    const K = KINDS[kind];
+    const box = $(K.box);
+    box.textContent = '';
+    const inputs = [];
+    state.words.forEach((w, i) => {
+      const row = mk('div', 'subs-row');
+      const wd = mk('span', 'word mini', w);
+      wd.style.setProperty('--h', hue(i));
+      const field = mk('div', 'subs-field');
+      const inp = mk('input');
+      inp.type = 'text';
+      inp.autocomplete = 'off';
+      inp.value = state[K.rows][i] || '';
+      inp.placeholder = K.hint;
+      inp.setAttribute('aria-label', (kind === 'syn' ? 'المرادفات المقترحة للكلمة ' : 'البدائل المقترحة للكلمة ') + w);
+      const msg = mk('small', 'row-msg');
+      inp.addEventListener('input', () => {
+        state[K.rows][i] = inp.value;
+        applyRow(kind, i, row, msg);
+        saveSubs();
+        subsSummary();
+        syncButtons();
+        if (state.mode === kind) showAll();
+      });
+      inp.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault();
+        if (inputs[i + 1]) inputs[i + 1].focus(); else $('#subsSave').click();
+      });
+      inputs.push(inp);
+      field.append(inp, msg);
+      row.append(wd, field);
+      box.appendChild(row);
+      applyRow(kind, i, row, msg);
+    });
+  }
+
+  function buildSubsUI() {
+    buildRows('syn');
+    buildRows('swap');
+    $('#subs').hidden = !state.words.length;
+    subsSummary();
+  }
+
+  function setTab(name, focus) {
+    activeTab = name;
+    document.querySelectorAll('.tab').forEach(t => {
+      const on = t.dataset.tab === name;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+    });
+    $('#panelSyn').hidden = name !== 'syn';
+    $('#panelSwap').hidden = name !== 'swap';
+    subsSummary();
+    if (focus) document.querySelector(`.tab[data-tab="${name}"]`).focus();
+  }
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => setTab(t.dataset.tab));
+    t.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setTab(activeTab === 'syn' ? 'swap' : 'syn', true);
+      }
+    });
+  });
+
+  $('#subsSave').addEventListener('click', () => {
+    for (const kind of Object.keys(KINDS)) {
+      const K = KINDS[kind];
+      const bad = state[K.rows].findIndex((raw, i) => raw && raw.trim() && !state[K.lists][i]);
+      if (bad >= 0) {
+        setTab(kind);
+        const m = $('#subsMsg');
+        m.textContent = 'صحّح الصفوف المعلّمة بالأحمر (أو امسح محتواها) ثم احفظ.';
+        m.classList.add('err');
+        $(K.box).querySelectorAll('input')[bad].focus();
+        return;
+      }
+    }
+    setFold(true);
+  });
+  $('#subsSkip').addEventListener('click', () => setFold(true));
+
+  function optionChanged() {
+    syncIntrUI();
+    if (state.mode === 'scramble') scramblePress();
+  }
+  $('#useIntr').addEventListener('change', e => { state.useIntr = e.target.checked; optionChanged(); });
+  $('#intrMinus').addEventListener('click', () => { state.intrK--; optionChanged(); });
+  $('#intrPlus').addEventListener('click', () => { state.intrK++; optionChanged(); });
+  document.querySelectorAll('.seg').forEach(b => b.addEventListener('click', () => setSwapMax(+b.dataset.n)));
+
   document.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => {
     const m = b.dataset.mode;
     if (m === 'spell') spellPress();
     else if (m === 'hide') hidePress(false);
     else if (m === 'rand') hidePress(true);
+    else if (m === 'sort') sortPress();
+    else if (m === 'syn') synPress();
+    else if (m === 'swap') swapPress();
     else scramblePress();
   }));
   $('#reset').addEventListener('click', showAll);
 
-  // اختصار لوحة المفاتيح (مسافة / Enter) في التهجئة والإخفاء بنوعيه فقط
   addEventListener('keydown', e => {
     if (/INPUT|TEXTAREA|BUTTON|SELECT/.test(e.target.tagName)) return;
     if (e.key !== ' ' && e.key !== 'Enter') return;
@@ -761,12 +1725,35 @@
     else if (state.mode === 'rand') { e.preventDefault(); hidePress(true); }
   });
 
-  /* ---------- بداية التشغيل ---------- */
   try {
     const saved = localStorage.getItem(STORE_KEY);
-    if (saved) { input.value = saved; setSentence(saved); setFold(true); }
-    else input.value = SAMPLE;
-  } catch (_) { input.value = SAMPLE; }
+    const seenTour = localStorage.getItem(STORE_TOUR);
+    if (!seenTour) {
+      setTimeout(() => showTourStep(0), 400);
+    }
+    if (saved) {
+      const savedIntr = localStorage.getItem(STORE_INTR) || '';
+      let rows = null;
+      try {
+        const o = JSON.parse(localStorage.getItem(STORE_SUBS) || 'null');
+        if (o && o.s === saved.trim().split(/\s+/).join(SEP)) {
+          rows = { syn: o.syn || o.rows, swap: o.swap };
+        }
+      } catch (_) {}
+      input.value = saved;
+      intrInput.value = savedIntr;
+      setSentence(saved, savedIntr, rows);
+      setFold(true);
+    } else {
+      input.value = SAMPLE;
+      intrInput.value = SAMPLE_INTR;
+      sampleArmed = true;
+    }
+  } catch (_) {
+    input.value = SAMPLE;
+    intrInput.value = SAMPLE_INTR;
+    sampleArmed = true;
+  }
   render();
   if (!state.words.length) input.focus();
 })();
